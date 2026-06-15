@@ -408,6 +408,7 @@ echo "2. Retail Customer Satisfaction"
 echo "3. HR Employee Onboarding"
 echo "4. Marketing Press Release"
 echo "5. Contract Compliance Review"
+echo "6. Content Generation"
 echo "7. All"
 echo "==============================================="
 echo ""
@@ -415,7 +416,7 @@ echo ""
 # Prompt user for use case selection
 useCaseValid=false
 while [[ "$useCaseValid" != true ]]; do
-    read -p "Please enter the number of the use case you would like to install: " useCaseSelection
+    read -p "Please enter the number of the use case you would like to install (1-7): " useCaseSelection
     
     # Handle both numeric and text input for 'all'
     if [[ "$useCaseSelection" == "all" || "$useCaseSelection" == "7" ]]; then
@@ -448,11 +449,13 @@ while [[ "$useCaseValid" != true ]]; do
         echo "Selected: Contract Compliance Review"
         echo "Note: If you choose to install a single use case, installation of other use cases will require re-running this script."
     elif [[ "$useCaseSelection" == "6" ]]; then
-        useCaseValid=false
-        echo -e "\033[31mInvalid selection. Please enter a number from 1-5 or 7.\033[0m"
+        selectedUseCase="Content Generation"
+        useCaseValid=true
+        echo "Selected: Content Generation"
+        echo "Note: If you choose to install a single use case, installation of other use cases will require re-running this script."
     else
         useCaseValid=false
-        echo -e "\033[31mInvalid selection. Please enter a number from 1-5 or 7.\033[0m"
+        echo -e "\033[31mInvalid selection. Please enter a number from 1-7.\033[0m"
     fi
 done
 
@@ -841,6 +844,30 @@ if [[ "$useCaseSelection" == "2" || "$useCaseSelection" == "all" || "$useCaseSel
 fi
 
 
+# Use Case 6 - Content Generation
+if [[ "$useCaseSelection" == "6" || "$useCaseSelection" == "all" || "$useCaseSelection" == "7" ]]; then
+    echo "Uploading Team Configuration for Content Generation..."
+    directoryPath="content_packs/content_gen/agent_teams"
+    teamId="00000000-0000-0000-0000-000000000007"
+
+    if $pythonCmd infra/scripts/upload_team_config.py "$backendUrl" "$directoryPath" "$userPrincipalId" "$teamId"; then
+        echo "Uploaded Team Configuration for Content Generation."
+    else
+        echo "Error: Team configuration for Content Generation upload failed."
+        ((failedTeamConfigs++))
+        isTeamConfigFailed=true
+    fi
+
+    echo "Deploying data for Content Generation content pack..."
+    if $pythonCmd infra/scripts/seed_knowledge_bases.py --pack "content_packs/content_gen" 2>/dev/null || \
+       $pythonCmd infra/scripts/upload_images_to_cosmos.py "content_packs/content_gen" 2>/dev/null; then
+        echo "Content Generation data deployed successfully."
+    else
+        echo "Warning: Content Generation data deployment had issues. You may need to run it manually."
+    fi
+fi
+
+
 if [[ "$isTeamConfigFailed" == true || "$isSampleDataFailed" == true ]]; then
     echo ""
     echo "One or more tasks failed. Please check the error messages above."
@@ -858,7 +885,7 @@ if [[ "$useCaseSelection" == "1" || "$useCaseSelection" == "2" || "$useCaseSelec
     fi
 fi
 
-if [[ "$useCaseSelection" == "1" || "$useCaseSelection" == "2" || "$useCaseSelection" == "5" || "$useCaseSelection" == "all" || "$useCaseSelection" == "7" ]]; then
+if [[ "$useCaseSelection" == "1" || "$useCaseSelection" == "2" || "$useCaseSelection" == "5" || "$useCaseSelection" == "6" || "$useCaseSelection" == "all" || "$useCaseSelection" == "7" ]]; then
     echo ""
     echo "Team configuration upload and sample data processing completed successfully."
 else
